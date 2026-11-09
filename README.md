@@ -25,9 +25,39 @@ If `git pull` complains about changes to a notebook, save your version under a n
 
 | Notebook | Purpose | Reads | Writes |
 |---|---|---|---|
-| [`01_transcribe`](notebooks/01_transcribe.ipynb) | Transcribes videos locally with Whisper on the GPU | `/corpus/raw` | `/corpus/derived/transcripts/`, `transcripts.csv`, `transcripts_errors.csv` |
+| [`01_transcribe`](notebooks/01_transcribe.ipynb) | Transcribes videos locally with Whisper on the GPU | `/corpus/raw` | `/corpus/derived/transcripts/`, `transcripts_errors.csv` |
 
-`01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. Finished videos are skipped when it runs again.
+| [`02_extract_frames`](notebooks/02_extract_frames.ipynb) | Samples frames with several strategies and compares them | `/corpus/raw` | `/corpus/derived/frames/<strategy>/`, `summary.csv` |
+| [`03_ocr`](notebooks/03_ocr.ipynb) | Reads on-screen text in extracted frames with EasyOCR on the GPU, and merges repeated text across time | `/corpus/derived/frames/<strategy>/` | `/corpus/derived/ocr/<strategy>/`, `summary.csv` |
+| [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy metadata, text and images tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
+
+`01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames` and `03_ocr`. Finished videos are skipped when a notebook runs again.
+
+To try your own extraction strategy, add it to `CONFIGS` in `02_extract_frames` under a new name. Results for each strategy stay in their own folder, so strategies can be compared side by side.
+
+## Tidy data
+
+We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes three linked tables to `/corpus/derived/tables/`:
+
+| Table | One row per | Key | Main columns |
+|---|---|---|---|
+| `posts.csv` (metadata) | TikTok post | `Post ID` | `Username`, `Created`, `Plays`, `Likes`, paths to the video, cover and metadata |
+| `texts.csv` | Caption, transcription or OCR text of a post | `Text ID` | `Post ID`, `Text Type`, `Strategy`, `Language`, `Text` |
+| `images.csv` | Cover or extracted frame | `Image ID` | `Post ID`, `Image Type`, `Strategy`, `Frame`, `Time`, `Path` |
+
+Run it again after each preprocessing step. Merge tables on `Post ID`, and always read IDs as text, because TikTok IDs are too long for number formats:
+
+```python
+import pandas as pd
+
+ids = {"Post ID": str, "Text ID": str, "Image ID": str}
+posts = pd.read_csv("/corpus/derived/tables/posts.csv", dtype=ids)
+texts = pd.read_csv("/corpus/derived/tables/texts.csv", dtype=ids)
+
+transcripts = texts[texts["Text Type"] == "Transcription"].merge(posts, on="Post ID")
+```
+
+Don't edit these tables, as they're rebuilt each time. Save your own variables, such as codings or model output, in a separate table in your subfolder of `/corpus/derived`, with the matching `Text ID`, `Image ID` or `Post ID`.
 
 ## How data moves
 
