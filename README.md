@@ -64,7 +64,7 @@ Don't edit these tables, as they're rebuilt each time. Save your own variables, 
 | Folder | Contents | Access |
 |---|---|---|
 | `/corpus/incoming/<user>` | Your uploads | You write, everyone reads |
-| `/corpus/raw` | Validated originals, copied automatically every 15 minutes | Read-only |
+| `/corpus/raw/<tiktok-account>/<post-id>` | Validated originals, copied automatically within a few minutes. Contains no student names | Read-only |
 | `/corpus/derived` | Transcripts, features and other results | Everyone reads and writes |
 
 Don't move files into `raw` by hand. Put your own results in a subfolder of `/corpus/derived`, and don't change other people's files.
