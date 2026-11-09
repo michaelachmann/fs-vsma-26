@@ -29,9 +29,10 @@ If `git pull` complains about changes to a notebook, save your version under a n
 
 | [`02_extract_frames`](notebooks/02_extract_frames.ipynb) | Samples frames with several strategies and compares them | `/corpus/raw` | `/corpus/derived/frames/<strategy>/`, `summary.csv` |
 | [`03_ocr`](notebooks/03_ocr.ipynb) | Reads on-screen text in extracted frames with EasyOCR on the GPU, and merges repeated text across time | `/corpus/derived/frames/<strategy>/` | `/corpus/derived/ocr/<strategy>/`, `summary.csv` |
+| [`03b_clean_ocr`](notebooks/03b_clean_ocr.ipynb) | Repairs OCR errors with a Gemma 4 model in Ollama and flags results that contain text the OCR never saw | `/corpus/derived/ocr/<strategy>/` | `/corpus/derived/ocr_clean/<strategy>/`, `summary.csv`, `ocr_clean_errors.csv` |
 | [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy metadata, text and images tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
 
-`01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames` and `03_ocr`. Finished videos are skipped when a notebook runs again.
+`01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames`, `03_ocr` and `03b_clean_ocr`. Finished videos are skipped when a notebook runs again.
 
 To try your own extraction strategy, add it to `CONFIGS` in `02_extract_frames` under a new name. Results for each strategy stay in their own folder, so strategies can be compared side by side.
 
