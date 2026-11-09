@@ -1,0 +1,13 @@
+# The corpus is personal data and never belongs in this repository.
+data/
+*.mp4
+*.mov
+*.webm
+*.jpg
+*.csv
+*.parquet
+transcripts/
+.ipynb_checkpoints/
+__pycache__/
+.venv/
+.DS_Store
