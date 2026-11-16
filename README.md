@@ -36,6 +36,19 @@ If `git pull` complains about changes to a notebook, save your version under a n
 
 To try your own extraction strategy, add it to `CONFIGS` in `02_extract_frames` under a new name. Results for each strategy stay in their own folder, so strategies can be compared side by side.
 
+## Exploring the corpus
+
+After preprocessing, run `04_build_tables` again, then open:
+
+- [`05_explore_texts`](notebooks/05_explore_texts.ipynb): multilingual BERTopic on captions, transcripts, OCR, or one combined document per post. Choose one OCR strategy; cleaned OCR can fall back to raw OCR. Includes source coverage, topic inspection and an interactive text map.
+- [`06_explore_covers`](notebooks/06_explore_covers.ipynb): DINOv2 embeddings of video covers, higher-dimensional UMAP (or PCA) plus HDBSCAN or k-means, and a separate 2D UMAP image canvas. Zoom through on-canvas thumbnails, adjust image size, switch between images and points, select image centres for a gallery, and compare neighbours in the original embedding space.
+
+Both notebooks default to **CPU** and work without PixPlot. Their first cell installs the exploration packages in your workspace; on the seminar server, both notebooks load administrator-prepared weights directly from the shared read-only `/models/exploration` mount. Each model is stored once for all users, with an exact revision in `seminar-model.json`. No home-folder symlink is needed. Outside the seminar server, models fall back to a private Hugging Face cache. Use a GPU workspace only when preprocessing has released the shared GPU. The visual map is self-contained HTML and needs no additional server or port.
+
+By default results are private to your workspace, under `~/explorations/texts/` and `~/explorations/covers/`. Each notebook caches embeddings with the exact model revision and input selection. Changing clustering parameters reuses those vectors. Keep the shared tables unchanged while a notebook runs, and restart from the import cell after rebuilding them. Result tables retain `Post ID` or `Image ID` so you can link them back to the corpus.
+
+Covers exclude photo posts without a cover. The coverage tables show this selection and the availability of each text source. Clusters are exploratory groupings, not validated frames. Before committing notebooks, clear every output; exported HTML includes corpus text and/or thumbnails and must stay outside this public repository.
+
 ## Tidy data
 
 We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes three linked tables to `/corpus/derived/tables/`:

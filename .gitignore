@@ -11,3 +11,7 @@ transcripts/
 __pycache__/
 .venv/
 .DS_Store
+
+# Local exploration exports and embedding caches are corpus material.
+explorations/
+*.npz
