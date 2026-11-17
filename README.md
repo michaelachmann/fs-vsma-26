@@ -51,13 +51,16 @@ Covers exclude photo posts without a cover. The coverage tables show this select
 
 ## Tidy data
 
-We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes three linked tables to `/corpus/derived/tables/`:
+We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes four linked tables to `/corpus/derived/tables/`:
 
 | Table | One row per | Key | Main columns |
 |---|---|---|---|
 | `posts.csv` (metadata) | TikTok post | `Post ID` | `Username`, `Created`, `Plays`, `Likes`, paths to the video, cover and metadata |
 | `texts.csv` | Caption, transcription or OCR text of a post | `Text ID` | `Post ID`, `Text Type`, `Strategy`, `Language`, `Text` |
 | `images.csv` | Cover or extracted frame | `Image ID` | `Post ID`, `Image Type`, `Strategy`, `Frame`, `Time`, `Path` |
+| `collections.csv` | Post in one collection submission | `Post ID` + `Batch ID` | `label`, `strategy` (`FYP`, `search`, `profile`) |
+
+`posts.csv` also includes `label` and `strategy` as JSON arrays of distinct values. Use `collections.csv` for filtering by a particular label/strategy pair: a post can occur in several collections while its media is stored once. Collection `strategy` is separate from the OCR/frame extraction `Strategy` column. Uploader IDs remain private and are not included in these tables. Existing posts without a collection submission have empty arrays.
 
 Run it again after each preprocessing step. Merge tables on `Post ID`, and always read IDs as text, because TikTok IDs are too long for number formats:
 
@@ -78,10 +81,12 @@ Don't edit these tables, as they're rebuilt each time. Save your own variables, 
 | Folder | Contents | Access |
 |---|---|---|
 | `/corpus/incoming/<user>` | Your uploads | You write, everyone reads |
-| `/corpus/raw/<tiktok-account>/<post-id>` | Validated originals, copied automatically within a few minutes. Contains no student names | Read-only |
+| `/corpus/raw/<tiktok-account>/<post-id>` | Validated originals, imported after an explicit form submission. Contains no student names | Read-only |
 | `/corpus/derived` | Transcripts, features and other results | Everyone reads and writes |
 
 Don't move files into `raw` by hand. Put your own results in a subfolder of `/corpus/derived`, and don't change other people's files.
+
+After uploading a batch, open `/services/corpus/` on the seminar server, select one or more folders with the searchable checkboxes, enter or select a shared subcorpus label and choose the collection strategy. Check the preview, then click **Import collection**. Successful imports remove the verified incoming copies; failed posts remain for correction. The receipt shows the results. Uploading alone does not import files. See the student manual for the complete walkthrough.
 
 ## Contributing
 
