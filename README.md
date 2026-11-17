@@ -25,6 +25,7 @@ If `git pull` complains about changes to a notebook, save your version under a n
 
 | Notebook | Purpose | Reads | Writes |
 |---|---|---|---|
+| [`00_collect_apify`](notebooks/00_collect_apify.ipynb) | Manually collects with Apify, prepares metadata/media and stages an explicit corpus submission | Your query/hashtag/post URLs and privately entered token | Private `~/apify-collections/<collection-name>/` exports; optional prepared batch in your incoming folder |
 | [`01_transcribe`](notebooks/01_transcribe.ipynb) | Transcribes videos locally with Whisper on the GPU | `/corpus/raw` | `/corpus/derived/transcripts/`, `transcripts_errors.csv` |
 
 | [`02_extract_frames`](notebooks/02_extract_frames.ipynb) | Samples frames with several strategies and compares them | `/corpus/raw` | `/corpus/derived/frames/<strategy>/`, `summary.csv` |
@@ -33,6 +34,14 @@ If `git pull` complains about changes to a notebook, save your version under a n
 | [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy metadata, text and images tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
 
 `01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames`, `03_ocr` and `03b_clean_ocr`. Finished videos are skipped when a notebook runs again.
+
+`00_collect_apify` runs in a CPU server workspace: the server calls Apify's REST API and downloads its dataset, while the scraper runs in Apify's cloud. Keep `apify_collection.py` and `apify_prepare.py` next to the notebook. It requires Python 3.11+ and, for media preparation, `ffmpeg`/`ffprobe` (already installed on the seminar server). Enter your own token through the hidden prompt, choose an explicit maximum run cost, review the inputs, then enable the start cell. Media add-ons are enabled by default and can incur charges within the requested run ceiling. A directory can start only one run; status checks and download retries never start another Actor. Closing Jupyter does not abort an Apify run: use Apify Console to stop it. After an ambiguous start error, recover the run ID from Console instead of starting again.
+
+Each private export preserves the exact request, run/build identifiers, original dataset rows (including errors), retrieval time and a checksum. Preparation downloads videos/covers or slideshow images, converts images to JPEG and maps post metadata to the corpus schema. Failed post bundles are excluded and counted; partial Actor runs require explicit opt-in. Success does not guarantee complete coverage. Preparation retries reuse private completed downloads. Existing corpus metadata is copied byte-for-byte and existing media reused; the newer observation remains in a source attachment. Private originals are never moved or deleted.
+
+After reviewing preparation, explicitly stage the batch into `/corpus/incoming/<account>/apify-<run-id>/`. Staging verifies checksums and publishes a completed folder; it does not import anything. Wait two minutes, then use `/services/corpus/` to preview, label and submit. Choose `hashtag` for hashtag sampling (requires the server form update), otherwise the relevant sampling strategy. The staging receipt prevents repeating the same run even after incoming cleanup. An interrupted staging attempt needs review of `staged.json` and incoming before recovery.
+
+Post JSON/media use the existing corpus naming convention. `apify-source.jsonl` and `collection-info.jsonl` become content-addressed raw attachments; their public copies omit access URLs and credential-like keys. The exact original export remains private. Comment runs must refer to parent posts already imported into raw; they reuse those post JSON files and attach normalized `comments.jsonl`, preserving supplied reply IDs. Rebuild `04_build_tables` to produce `comments.csv`. Scheduling and a dedicated collection form remain future stages. Clear notebook outputs before sharing or committing.
 
 To try your own extraction strategy, add it to `CONFIGS` in `02_extract_frames` under a new name. Results for each strategy stay in their own folder, so strategies can be compared side by side.
 
@@ -51,14 +60,17 @@ Covers exclude photo posts without a cover. The coverage tables show this select
 
 ## Tidy data
 
-We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes four linked tables to `/corpus/derived/tables/`:
+We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes five linked tables to `/corpus/derived/tables/`:
 
 | Table | One row per | Key | Main columns |
 |---|---|---|---|
 | `posts.csv` (metadata) | TikTok post | `Post ID` | `Username`, `Created`, `Plays`, `Likes`, paths to the video, cover and metadata |
 | `texts.csv` | Caption, transcription or OCR text of a post | `Text ID` | `Post ID`, `Text Type`, `Strategy`, `Language`, `Text` |
 | `images.csv` | Cover or extracted frame | `Image ID` | `Post ID`, `Image Type`, `Strategy`, `Frame`, `Time`, `Path` |
-| `collections.csv` | Post in one collection submission | `Post ID` + `Batch ID` | `label`, `strategy` (`FYP`, `search`, `profile`) |
+| `collections.csv` | Post in one collection submission | `Post ID` + `Batch ID` | `label`, `strategy` (`FYP`, `search`, `hashtag`, `profile`) |
+| `comments.csv` | Latest retrieved observation of a TikTok comment | `Comment ID` | `Post ID`, `Parent Comment ID`, `Username`, `Text`, `Likes`, `Run ID`, `Retrieved` |
+
+Comment snapshots remain in raw attachments. The comments table selects the latest retrieval per comment and reports observations excluded because the parent post is not yet imported. Parent comments may be missing because a sample can include replies without their parents. Comments remain separate from captions/transcripts/OCR. Read `Comment ID` and `Parent Comment ID` as strings as well.
 
 `posts.csv` also includes `label` and `strategy` as JSON arrays of distinct values. Use `collections.csv` for filtering by a particular label/strategy pair: a post can occur in several collections while its media is stored once. Collection `strategy` is separate from the OCR/frame extraction `Strategy` column. Uploader IDs remain private and are not included in these tables. Existing posts without a collection submission have empty arrays.
 
