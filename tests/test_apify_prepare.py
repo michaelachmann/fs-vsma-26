@@ -3,6 +3,7 @@ import hashlib
 import json
 import sys
 import tempfile
+import struct
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -90,6 +91,25 @@ class PreparationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "changed"):
             prepare.stage_run(self.run, self.incoming)
         self.assertEqual(list(self.incoming.iterdir()), [])
+
+    def test_linux_staging_acl_grants_only_worker_write(self):
+        with patch.object(prepare.sys, "platform", "linux"), patch.object(prepare.os, "setxattr", create=True) as set_acl:
+            prepare.incoming_permissions(self.incoming)
+        path, name, encoded = set_acl.call_args.args
+        self.assertEqual(name, "system.posix_acl_access")
+        self.assertEqual(struct.unpack_from("<I", encoded)[0], 2)
+        entries = [struct.unpack_from("<HHI", encoded, i) for i in range(4, len(encoded), 8)]
+        self.assertIn((2, 7, 19999), entries)
+        self.assertIn((4, 5, 0xFFFFFFFF), entries)  # Owning group has no write.
+        self.assertIn((16, 7, 0xFFFFFFFF), entries)  # Worker ACL is not masked.
+
+    def test_acl_failure_prevents_publication(self):
+        prepare.prepare_run(self.run, raw=self.raw, include_media=False)
+        with patch.object(prepare.sys, "platform", "linux"), patch.object(prepare.os, "setxattr", create=True, side_effect=OSError("unsupported")):
+            with self.assertRaisesRegex(ValueError, "cleanup access"):
+                prepare.stage_run(self.run, self.incoming)
+        self.assertFalse((self.incoming / "apify-run123").exists())
+        self.assertFalse((self.run / "staged.json").exists())
 
     def test_comment_import_requires_existing_post_preserves_reply(self):
         comment = {"cid": "456", "repliesToId": "455", "videoWebUrl": "https://www.tiktok.com/@creator/video/123",

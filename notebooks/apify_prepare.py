@@ -12,6 +12,8 @@ import re
 import shutil
 import socket
 import subprocess
+import struct
+import sys
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -330,6 +332,26 @@ def file_hash(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def incoming_permissions(path):
+    """Keep public read access and grant cleanup only to the dedicated worker.
+
+    chmod(0755) masks inherited named-user ACL write permission on Linux. Set
+    the explicit POSIX ACL instead: owning group stays read/execute only even
+    though the ACL mask (shown as group mode bits) is rwx.
+    """
+    if sys.platform != "linux":
+        os.chmod(path, 0o755)
+        return
+    undefined = 0xFFFFFFFF
+    entries = [(0x01, 7, undefined), (0x02, 7, 19999),
+               (0x04, 5, undefined), (0x10, 7, undefined), (0x20, 5, undefined)]
+    acl = struct.pack("<I", 2) + b"".join(struct.pack("<HHI", *entry) for entry in entries)
+    try:
+        os.setxattr(path, "system.posix_acl_access", acl)
+    except OSError:
+        raise ValueError("Cannot grant the import worker cleanup access; ask the instructor to check incoming ACL support") from None
+
+
 def stage_run(directory, incoming_user_root):
     """Copy a verified, completed batch into the student's existing incoming root.
 
@@ -361,8 +383,7 @@ or arbitrary filenames are published. Originals and private preparation survive.
                 if file_hash(temporary / name) != expected:
                     raise ValueError("Staging copy failed checksum verification")
                 os.chmod(temporary / name, 0o644)
-            # Public incoming folders follow the server's established read policy.
-            os.chmod(temporary, 0o755)
+            incoming_permissions(temporary)
             # Save intent first so a crash cannot silently cause a repeat submission.
             atomic_json(directory / "staged.json", {"run_id": report["run_id"], "folder": destination.name})
             temporary.rename(destination)
