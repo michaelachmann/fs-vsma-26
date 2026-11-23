@@ -27,24 +27,18 @@ If `git pull` complains about changes to a notebook, save your version under a n
 |---|---|---|---|
 | [`00_collect_apify`](notebooks/00_collect_apify.ipynb) | Manually collects with Apify, prepares metadata/media and stages an explicit corpus submission | Your query/hashtag/post URLs and privately entered token | Private `~/apify-collections/<collection-name>/` exports; optional prepared batch in your incoming folder |
 | [`01_transcribe`](notebooks/01_transcribe.ipynb) | Transcribes videos locally with Whisper on the GPU | `/corpus/raw` | `/corpus/derived/transcripts/`, `transcripts_errors.csv` |
-
 | [`02_extract_frames`](notebooks/02_extract_frames.ipynb) | Samples frames with several strategies and compares them | `/corpus/raw` | `/corpus/derived/frames/<strategy>/`, `summary.csv` |
 | [`03_ocr`](notebooks/03_ocr.ipynb) | Reads on-screen text in extracted frames with EasyOCR on the GPU, and merges repeated text across time | `/corpus/derived/frames/<strategy>/` | `/corpus/derived/ocr/<strategy>/`, `summary.csv` |
 | [`03b_clean_ocr`](notebooks/03b_clean_ocr.ipynb) | Repairs OCR errors with a Gemma 4 model in Ollama and flags results that contain text the OCR never saw | `/corpus/derived/ocr/<strategy>/` | `/corpus/derived/ocr_clean/<strategy>/`, `summary.csv`, `ocr_clean_errors.csv` |
-| [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy metadata, text and images tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
-| [`07_select_annotation_items`](notebooks/07_select_annotation_items.ipynb) | Uses form inputs and editable Python cells to filter and sample annotation items | Shared corpus tables or bundled synthetic pilot tables | Private draft JSON with a working title and item IDs |
+| [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy post, text, image, collection and comment tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
+| [`05_explore_texts`](notebooks/05_explore_texts.ipynb) | Explores topics in post text with BERTopic | Shared corpus tables | `~/explorations/texts/` |
+| [`06_explore_covers`](notebooks/06_explore_covers.ipynb) | Explores and clusters video covers using DINOv2 embeddings | Shared corpus tables and covers | `~/explorations/covers/` |
+| [`07_select_annotation_items`](notebooks/07_select_annotation_items.ipynb) | Filters and samples text or comment rows for Annotation Studies | Shared corpus tables or bundled synthetic tables | Draft JSON in `~/annotation-drafts/` |
+| [`07a_sample_images`](notebooks/07a_sample_images.ipynb) | Samples covers, gallery images or frames with a post limit, stratification and a thumbnail check | Shared corpus tables and image files | Draft JSON in `~/annotation-drafts/` |
 
 `01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames`, `03_ocr` and `03b_clean_ocr`. Finished videos are skipped when a notebook runs again.
 
-`00_collect_apify` runs in a CPU server workspace: the server calls Apify's REST API and downloads its dataset, while the scraper runs in Apify's cloud. Keep `apify_collection.py` and `apify_prepare.py` next to the notebook. It requires Python 3.11+ and, for media preparation, `ffmpeg`/`ffprobe` (already installed on the seminar server). Enter your own token through the hidden prompt, choose an explicit maximum run cost, review the inputs, then enable the start cell. Media add-ons are enabled by default and can incur charges within the requested run ceiling. A directory can start only one run; status checks and download retries never start another Actor. Closing Jupyter does not abort an Apify run: use Apify Console to stop it. After an ambiguous start error, recover the run ID from Console instead of starting again.
-
-Each private export preserves the exact request, run/build identifiers, original dataset rows (including errors), retrieval time and a checksum. Preparation downloads videos/covers or slideshow images, converts images to JPEG and maps post metadata to the corpus schema. Failed post bundles are excluded and counted; partial Actor runs require explicit opt-in. Success does not guarantee complete coverage. Preparation retries reuse private completed downloads. Existing corpus metadata is copied byte-for-byte and existing media reused; the newer observation remains in a source attachment. Private originals are never moved or deleted.
-
-After reviewing preparation, explicitly stage the batch into `/corpus/incoming/<account>/apify-<run-id>/`. Staging verifies checksums and publishes a completed folder; it does not import anything. Wait two minutes, then use `/services/corpus/` to preview, label and submit. Choose `hashtag` for hashtag sampling (requires the server form update), otherwise the relevant sampling strategy. The staging receipt prevents repeating the same run even after incoming cleanup. An interrupted staging attempt needs review of `staged.json` and incoming before recovery.
-
-On the Linux server staging grants cleanup access specifically to the import worker (UID 19999) through a POSIX ACL; other students do not receive write access. Do not chmod staged folders to 0755 afterwards, as that masks the worker's write permission. If an older import reports a cleanup permission error, the instructor must repair existing incoming ACLs. After a corpus reset, folders retained in incoming can be submitted again through the form without restaging them from the private export.
-
-Post JSON/media use the existing corpus naming convention. `apify-source.jsonl` and `collection-info.jsonl` become content-addressed raw attachments; their public copies omit access URLs and credential-like keys. The exact original export remains private. Comment runs must refer to parent posts already imported into raw; they reuse those post JSON files and attach normalized `comments.jsonl`, preserving supplied reply IDs. Rebuild `04_build_tables` to produce `comments.csv`. Scheduling and a dedicated collection form remain future stages. Clear notebook outputs before sharing or committing.
+`00_collect_apify` runs in a CPU workspace. Follow the notebook for cost limits, private exports and staging. Both manual uploads and notebook batches go through the same corpus form. [Student Manual: Upload collected data](https://github.com/michaelachmann/jupyter-workstation/blob/main/student-manual.md#4-upload-collected-data)
 
 To try your own extraction strategy, add it to `CONFIGS` in `02_extract_frames` under a new name. Results for each strategy stay in their own folder, so strategies can be compared side by side.
 
@@ -61,9 +55,13 @@ By default results are private to your workspace, under `~/explorations/texts/` 
 
 Covers exclude photo posts without a cover. The coverage tables show this selection and the availability of each text source. Clusters are exploratory groupings, not validated frames. Before committing notebooks, clear every output; exported HTML includes corpus text and/or thumbnails and must stay outside this public repository.
 
+## Annotation Studies
+
+Use `07_select_annotation_items` to review and export a sample, then open **Services → Annotation Studies → Create study** in the Hub. The classroom pilot and test rounds use one TikTok caption per item. [Student Manual: Annotation Studies](https://github.com/michaelachmann/jupyter-workstation/blob/main/student-manual.md#10-annotation-studies)
+
 ## Tidy data
 
-We organise the corpus following the [tidy data principles](https://social-media-lab.net/processing/): each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes five linked tables to `/corpus/derived/tables/`:
+Each variable is a column, each observation is a row, and each type of observational unit is its own table. `04_build_tables` writes five linked tables to `/corpus/derived/tables/`. [Data preprocessing](https://social-media-lab.net/processing/preprocessing.html) · [Image and frame sampling](https://github.com/michaelachmann/social-media-lab-quarto/blob/main/processing/frame-sampling.qmd)
 
 | Table | One row per | Key | Main columns |
 |---|---|---|---|
@@ -101,7 +99,7 @@ Don't edit these tables, as they're rebuilt each time. Save your own variables, 
 
 Don't move files into `raw` by hand. Put your own results in a subfolder of `/corpus/derived`, and don't change other people's files.
 
-After uploading a batch, open `/services/corpus/` on the seminar server, select one or more folders with the searchable checkboxes, enter or select a shared subcorpus label and choose the collection strategy. Check the preview, then click **Import collection**. Successful imports remove the verified incoming copies; failed posts remain for correction. The receipt shows the results. Uploading alone does not import files. See the student manual for the complete walkthrough.
+Submit uploaded or staged batches through the seminar server's corpus form. [Student Manual: Check and import your folders](https://github.com/michaelachmann/jupyter-workstation/blob/main/student-manual.md#b-check-and-import-your-folders)
 
 ## Contributing
 
