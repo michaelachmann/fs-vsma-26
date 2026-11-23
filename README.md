@@ -32,7 +32,7 @@ If `git pull` complains about changes to a notebook, save your version under a n
 | [`03_ocr`](notebooks/03_ocr.ipynb) | Reads on-screen text in extracted frames with EasyOCR on the GPU, and merges repeated text across time | `/corpus/derived/frames/<strategy>/` | `/corpus/derived/ocr/<strategy>/`, `summary.csv` |
 | [`03b_clean_ocr`](notebooks/03b_clean_ocr.ipynb) | Repairs OCR errors with a Gemma 4 model in Ollama and flags results that contain text the OCR never saw | `/corpus/derived/ocr/<strategy>/` | `/corpus/derived/ocr_clean/<strategy>/`, `summary.csv`, `ocr_clean_errors.csv` |
 | [`04_build_tables`](notebooks/04_build_tables.ipynb) | Builds the tidy metadata, text and images tables | `/corpus/raw` and the results above | `/corpus/derived/tables/` |
-| [`07_select_annotation_items`](notebooks/07_select_annotation_items.ipynb) | Filters and samples text, comments, or images for an annotation study using a JupyterLab form | Shared corpus tables or bundled synthetic pilot tables | Private draft JSON with a working title and item IDs |
+| [`07_select_annotation_items`](notebooks/07_select_annotation_items.ipynb) | Uses form inputs and editable Python cells to filter and sample annotation items | Shared corpus tables or bundled synthetic pilot tables | Private draft JSON with a working title and item IDs |
 
 `01_transcribe` is normally run once for the whole seminar, so check with your instructor before running it yourself. The same goes for the default strategies in `02_extract_frames`, `03_ocr` and `03b_clean_ocr`. Finished videos are skipped when a notebook runs again.
 
